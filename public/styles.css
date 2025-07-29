@@ -1,0 +1,701 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: white;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.header h1 {
+    font-size: 2.5em;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    margin-bottom: 10px;
+}
+
+.login-screen {
+    text-align: center;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 40px;
+    margin: 50px auto;
+    max-width: 400px;
+}
+
+.game-screen {
+    display: none;
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+
+input[type="text"] {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    background: rgba(255,255,255,0.9);
+    color: #333;
+}
+
+button {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background 0.3s;
+    margin: 5px;
+}
+
+button:hover {
+    background: #45a049;
+}
+
+button:disabled {
+    background: #666;
+    cursor: not-allowed;
+}
+
+.players-list {
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.player-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+.player-ready {
+    background: rgba(76, 175, 80, 0.3);
+}
+
+.player-current {
+    background: rgba(255, 193, 7, 0.3);
+    border: 2px solid #ffc107;
+}
+
+.game-board {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.pile-section {
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 20px;
+}
+
+.pile-title {
+    text-align: center;
+    font-size: 1.2em;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+.piles {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.pile {
+    width: 80px;
+    height: 100px;
+    background: rgba(255,255,255,0.8);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5em;
+    color: #333;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s;
+    position: relative;
+}
+
+.pile:hover {
+    transform: scale(1.05);
+}
+
+.pile.valid-drop {
+    background: rgba(76, 175, 80, 0.8);
+}
+
+.pile.has-warning {
+    border: 3px solid #ff4444;
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+    animation: warningPulse 1.5s infinite;
+}
+
+/* 경고 아이콘을 별도 요소로 변경 */
+.warning-icon {
+    position: absolute;
+    top: -15px;
+    right: -15px;
+    font-size: 1.2em;
+    background: #ff4444;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    z-index: 20;
+}
+
+.warning-icon:hover {
+    transform: scale(1.2);
+}
+
+.warning-icon:hover .icon-tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+
+.pile.has-warning .warning-count {
+    position: absolute;
+    bottom: -8px;
+    right: -8px;
+    background: #ff4444;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 0.7em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    z-index: 10;
+}
+
+.pile.has-intention .intention-count {
+    position: absolute;
+    bottom: -8px;
+    left: -8px;
+    background: #2196F3;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 0.7em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    z-index: 10;
+}
+
+.tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 200px;
+    background-color: rgba(0, 0, 0, 0.9);
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px;
+    position: absolute;
+    z-index: 1000;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -100px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.8em;
+    line-height: 1.2;
+}
+
+.tooltip .tooltiptext::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: rgba(0, 0, 0, 0.9) transparent transparent transparent;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Icon tooltips - 개선된 크기와 위치 */
+.icon-tooltip {
+    position: absolute;
+    visibility: hidden;
+    width: auto;
+    background-color: rgba(0, 0, 0, 0.9);
+    color: #fff;
+    text-align: center;
+    border-radius: 4px;
+    padding: 4px 6px;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    font-size: 0.35em;
+    line-height: 1.2;
+    pointer-events: none;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.icon-tooltip::after {
+    content: "";
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent transparent rgba(0, 0, 0, 0.9) transparent;
+}
+
+.warning-icon .icon-tooltip {
+    top: 35px;
+    right: -45px;
+}
+
+.intention-icon .icon-tooltip {
+    top: 35px;
+    left: -45px;
+}
+
+/* 폭죽 애니메이션 */
+.fireworks {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+}
+
+.firework-spark {
+    position: absolute;
+    border-radius: 50%;
+    animation: spark 2.5s ease-out forwards;
+}
+
+.firework-particle {
+    position: absolute;
+    border-radius: 50%;
+    animation: particle 3s ease-out forwards;
+}
+
+.firework-trail {
+    position: absolute;
+    border-radius: 50%;
+    animation: trail 2s ease-out forwards;
+}
+
+.firework-star {
+    position: absolute;
+    animation: star 2.5s ease-out forwards;
+}
+
+@keyframes spark {
+    0% {
+        transform: translate(0, 0) scale(1.5);
+        opacity: 1;
+        box-shadow: 0 0 10px currentColor;
+    }
+    50% {
+        transform: translate(calc(var(--sx) * 0.7), calc(var(--sy) * 0.7)) scale(1.2);
+        opacity: 0.8;
+    }
+    100% {
+        transform: translate(var(--sx), var(--sy)) scale(0);
+        opacity: 0;
+    }
+}
+
+@keyframes particle {
+    0% {
+        transform: translate(0, 0) scale(0.8);
+        opacity: 1;
+        box-shadow: 0 0 5px currentColor;
+    }
+    30% {
+        transform: translate(calc(var(--px) * 0.5), calc(var(--py) * 0.5)) scale(1);
+        opacity: 0.9;
+    }
+    100% {
+        transform: translate(var(--px), var(--py)) scale(0.2);
+        opacity: 0;
+    }
+}
+
+@keyframes trail {
+    0% {
+        transform: translate(0, 0) scale(0.5);
+        opacity: 0.8;
+        box-shadow: 0 0 15px currentColor;
+    }
+    100% {
+        transform: translate(var(--tx), var(--ty)) scale(0);
+        opacity: 0;
+    }
+}
+
+@keyframes star {
+    0% {
+        transform: translate(0, 0) scale(0) rotate(0deg);
+        opacity: 1;
+        filter: brightness(2);
+    }
+    50% {
+        transform: translate(calc(var(--stx) * 0.6), calc(var(--sty) * 0.6)) scale(1.5) rotate(180deg);
+        opacity: 0.9;
+    }
+    100% {
+        transform: translate(var(--stx), var(--sty)) scale(0) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+@keyframes warningPulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(255, 68, 68, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(255, 68, 68, 0.8); }
+}
+
+.warning-controls {
+    text-align: center;
+    margin-top: 10px;
+}
+
+.warning-btn {
+    background: #ff9800;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8em;
+    margin: 2px;
+}
+
+.warning-btn:hover {
+    background: #f57c00;
+}
+
+.warning-btn.active {
+    background: #ff4444;
+}
+
+.pile.has-intention {
+    border: 3px solid #2196F3;
+    box-shadow: 0 0 10px rgba(33, 150, 243, 0.5);
+}
+
+/* 의도 아이콘을 별도 요소로 변경 */
+.intention-icon {
+    position: absolute;
+    top: -15px;
+    left: -15px;
+    font-size: 1.2em;
+    background: #2196F3;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    z-index: 20;
+}
+
+.intention-icon:hover {
+    transform: scale(1.2);
+}
+
+.intention-icon:hover .icon-tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+
+.pile.has-poop {
+    animation: poopShake 0.5s ease-in-out;
+}
+
+.pile.has-poop::after {
+    content: '💩';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2em;
+    z-index: 10;
+    animation: poopPulse 3s ease-in-out;
+}
+
+@keyframes poopShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+@keyframes poopPulse {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+}
+
+.intention-btn {
+    background: #2196F3;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8em;
+    margin: 2px;
+}
+
+.intention-btn:hover {
+    background: #1976D2;
+}
+
+.intention-btn.active {
+    background: #0D47A1;
+    box-shadow: 0 0 5px rgba(33, 150, 243, 0.8);
+}
+
+.hand {
+    text-align: center;
+    margin-top: 20px;
+    border-radius: 10px;
+    padding: 15px;
+    transition: border 0.3s ease;
+}
+
+.hand.my-turn {
+    border: 3px solid #ffc107;
+    background: rgba(255, 193, 7, 0.1);
+    box-shadow: 0 0 15px rgba(255, 193, 7, 0.3);
+}
+
+.card.good-move {
+    position: relative;
+    overflow: hidden;
+}
+
+.card.good-move::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.6), transparent);
+    animation: sparkle 2s infinite;
+}
+
+.card.good-move::after {
+    content: '✨';
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 0.8em;
+    animation: twinkle 1.5s infinite;
+}
+
+@keyframes sparkle {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.5; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
+.hand h3 {
+    margin-bottom: 15px;
+}
+
+.cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+.card {
+    width: 60px;
+    height: 80px;
+    background: white;
+    color: #333;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s;
+    user-select: none;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card.selected {
+    background: #ffeb3b;
+    transform: translateY(-10px);
+}
+
+.game-info {
+    text-align: center;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.message {
+    text-align: center;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+    background: rgba(255,255,255,0.2);
+}
+
+.success {
+    background: rgba(76, 175, 80, 0.3);
+}
+
+.error {
+    background: rgba(244, 67, 54, 0.3);
+}
+
+.game-log {
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    max-height: 200px;
+}
+
+#logMessages {
+    max-height: 150px;
+    overflow-y: auto;
+    background: rgba(0,0,0,0.2);
+    border-radius: 5px;
+    padding: 10px;
+}
+
+.log-message {
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    font-size: 0.9em;
+    line-height: 1.3;
+}
+
+.log-message:last-child {
+    border-bottom: none;
+}
+
+.log-message.success {
+    color: #4CAF50;
+}
+
+.log-message.error {
+    color: #ff6b6b;
+}
+
+.log-message.info {
+    color: #64b5f6;
+}
+
+.log-timestamp {
+    color: rgba(255,255,255,0.6);
+    font-size: 0.8em;
+    margin-right: 8px;
+}
+
+.game-over {
+    text-align: center;
+    background: rgba(255,255,255,0.15);
+    border-radius: 15px;
+    padding: 30px;
+    margin: 20px 0;
+}
+
+.win {
+    background: rgba(76, 175, 80, 0.3);
+}
+
+.lose {
+    background: rgba(244, 67, 54, 0.3);
+}
+
+@media (max-width: 768px) {
+    .game-board {
+        grid-template-columns: 1fr;
+    }
+    
+    .cards {
+        gap: 5px;
+    }
+    
+    .card {
+        width: 50px;
+        height: 70px;
+        font-size: 0.9em;
+    }
+    
+    .pile {
+        width: 70px;
+        height: 90px;
+        font-size: 1.3em;
+    }
+}

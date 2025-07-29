@@ -5,481 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>더 게임 (The Game)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: white;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .header h1 {
-            font-size: 2.5em;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            margin-bottom: 10px;
-        }
-
-        .login-screen {
-            text-align: center;
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 40px;
-            margin: 50px auto;
-            max-width: 400px;
-        }
-
-        .game-screen {
-            display: none;
-        }
-
-        .input-group {
-            margin-bottom: 20px;
-        }
-
-        .input-group label {
-            display: block;
-            margin-bottom: 10px;
-            font-size: 1.1em;
-        }
-
-        input[type="text"] {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1em;
-            background: rgba(255,255,255,0.9);
-            color: #333;
-        }
-
-        button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: background 0.3s;
-            margin: 5px;
-        }
-
-        button:hover {
-            background: #45a049;
-        }
-
-        button:disabled {
-            background: #666;
-            cursor: not-allowed;
-        }
-
-        .players-list {
-            background: rgba(255,255,255,0.1);
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .player-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-
-        .player-ready {
-            background: rgba(76, 175, 80, 0.3);
-        }
-
-        .player-current {
-            background: rgba(255, 193, 7, 0.3);
-            border: 2px solid #ffc107;
-        }
-
-        .game-board {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .pile-section {
-            background: rgba(255,255,255,0.1);
-            border-radius: 10px;
-            padding: 20px;
-        }
-
-        .pile-title {
-            text-align: center;
-            font-size: 1.2em;
-            margin-bottom: 15px;
-            font-weight: bold;
-        }
-
-        .piles {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-        }
-
-        .pile {
-            width: 80px;
-            height: 100px;
-            background: rgba(255,255,255,0.8);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5em;
-            color: #333;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.2s;
-            position: relative;
-        }
-
-        .pile:hover {
-            transform: scale(1.05);
-        }
-
-        .pile.valid-drop {
-            background: rgba(76, 175, 80, 0.8);
-        }
-
-        .pile.has-warning {
-            border: 3px solid #ff4444;
-            box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
-            animation: warningPulse 1.5s infinite;
-        }
-
-        .pile.has-warning::after {
-            content: '⚠️';
-            position: absolute;
-            top: -15px;
-            right: -15px;
-            font-size: 1.2em;
-            background: #ff4444;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        @keyframes warningPulse {
-            0%, 100% { box-shadow: 0 0 10px rgba(255, 68, 68, 0.5); }
-            50% { box-shadow: 0 0 20px rgba(255, 68, 68, 0.8); }
-        }
-
-        .warning-controls {
-            text-align: center;
-            margin-top: 10px;
-        }
-
-        .warning-btn {
-            background: #ff9800;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8em;
-            margin: 2px;
-        }
-
-        .warning-btn:hover {
-            background: #f57c00;
-        }
-
-        .warning-btn.active {
-            background: #ff4444;
-        }
-
-        .pile.has-intention {
-            border: 3px solid #2196F3;
-            box-shadow: 0 0 10px rgba(33, 150, 243, 0.5);
-        }
-
-        .pile.has-intention::before {
-            content: '👆';
-            position: absolute;
-            top: -15px;
-            left: -15px;
-            font-size: 1.2em;
-            background: #2196F3;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .pile.has-poop {
-            animation: poopShake 0.5s ease-in-out;
-        }
-
-        .pile.has-poop::after {
-            content: '💩';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 2em;
-            z-index: 10;
-            animation: poopPulse 3s ease-in-out;
-        }
-
-        @keyframes poopShake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
-
-        @keyframes poopPulse {
-            0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.2); }
-            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-        }
-
-        .intention-btn {
-            background: #2196F3;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8em;
-            margin: 2px;
-        }
-
-        .intention-btn:hover {
-            background: #1976D2;
-        }
-
-        .intention-btn.active {
-            background: #0D47A1;
-            box-shadow: 0 0 5px rgba(33, 150, 243, 0.8);
-        }
-
-        .hand {
-            text-align: center;
-            margin-top: 20px;
-            border-radius: 10px;
-            padding: 15px;
-            transition: border 0.3s ease;
-        }
-
-        .hand.my-turn {
-            border: 3px solid #ffc107;
-            background: rgba(255, 193, 7, 0.1);
-            box-shadow: 0 0 15px rgba(255, 193, 7, 0.3);
-        }
-
-        .card.good-move {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .card.good-move::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.6), transparent);
-            animation: sparkle 2s infinite;
-        }
-
-        .card.good-move::after {
-            content: '✨';
-            position: absolute;
-            top: 2px;
-            right: 2px;
-            font-size: 0.8em;
-            animation: twinkle 1.5s infinite;
-        }
-
-        @keyframes sparkle {
-            0% { left: -100%; }
-            100% { left: 100%; }
-        }
-
-        @keyframes twinkle {
-            0%, 100% { opacity: 0.5; transform: scale(0.8); }
-            50% { opacity: 1; transform: scale(1.2); }
-        }
-
-        .hand {
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .hand h3 {
-            margin-bottom: 15px;
-        }
-
-        .cards {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-        }
-
-        .card {
-            width: 60px;
-            height: 80px;
-            background: white;
-            color: #333;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.2s;
-            user-select: none;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-        }
-
-        .card.selected {
-            background: #ffeb3b;
-            transform: translateY(-10px);
-        }
-
-        .game-info {
-            text-align: center;
-            background: rgba(255,255,255,0.1);
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .message {
-            text-align: center;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
-            background: rgba(255,255,255,0.2);
-        }
-
-        .success {
-            background: rgba(76, 175, 80, 0.3);
-        }
-
-        .error {
-            background: rgba(244, 67, 54, 0.3);
-        }
-
-        .game-log {
-            background: rgba(255,255,255,0.1);
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            max-height: 200px;
-        }
-
-        #logMessages {
-            max-height: 150px;
-            overflow-y: auto;
-            background: rgba(0,0,0,0.2);
-            border-radius: 5px;
-            padding: 10px;
-        }
-
-        .log-message {
-            padding: 5px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            font-size: 0.9em;
-            line-height: 1.3;
-        }
-
-        .log-message:last-child {
-            border-bottom: none;
-        }
-
-        .log-message.success {
-            color: #4CAF50;
-        }
-
-        .log-message.error {
-            color: #ff6b6b;
-        }
-
-        .log-message.info {
-            color: #64b5f6;
-        }
-
-        .log-timestamp {
-            color: rgba(255,255,255,0.6);
-            font-size: 0.8em;
-            margin-right: 8px;
-        }
-
-        .game-over {
-            text-align: center;
-            background: rgba(255,255,255,0.15);
-            border-radius: 15px;
-            padding: 30px;
-            margin: 20px 0;
-        }
-
-        .win {
-            background: rgba(76, 175, 80, 0.3);
-        }
-
-        .lose {
-            background: rgba(244, 67, 54, 0.3);
-        }
-
-        @media (max-width: 768px) {
-            .game-board {
-                grid-template-columns: 1fr;
-            }
-            
-            .cards {
-                gap: 5px;
-            }
-            
-            .card {
-                width: 50px;
-                height: 70px;
-                font-size: 0.9em;
-            }
-            
-            .pile {
-                width: 70px;
-                height: 90px;
-                font-size: 1.3em;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
@@ -765,22 +291,73 @@
                 const pileElement = document.getElementById(pileType);
                 pileElement.textContent = topCard;
                 
+                // 기존 아이콘과 카운트 요소들 제거
+                const existingWarningIcon = pileElement.querySelector('.warning-icon');
+                const existingIntentionIcon = pileElement.querySelector('.intention-icon');
+                const existingWarningCount = pileElement.querySelector('.warning-count');
+                const existingIntentionCount = pileElement.querySelector('.intention-count');
+                if (existingWarningIcon) existingWarningIcon.remove();
+                if (existingIntentionIcon) existingIntentionIcon.remove();
+                if (existingWarningCount) existingWarningCount.remove();
+                if (existingIntentionCount) existingIntentionCount.remove();
+                
                 // 경고 표시 업데이트
-                if (gameState.pileWarnings && gameState.pileWarnings[pileType]) {
+                if (gameState.pileWarnings && gameState.pileWarnings[pileType] && gameState.pileWarnings[pileType].length > 0) {
                     pileElement.classList.add('has-warning');
+                    
+                    // 경고 아이콘 생성
+                    const warningIcon = document.createElement('div');
+                    warningIcon.className = 'warning-icon';
+                    warningIcon.textContent = '⚠️';
+                    
+                    // 경고 툴팁 생성
+                    const warningTooltip = document.createElement('div');
+                    warningTooltip.className = 'icon-tooltip';
+                    const warningPlayers = gameState.pileWarnings[pileType].map(w => w.playerName);
+                    warningTooltip.textContent = `${warningPlayers.join(', ')}님이 "그만!"을 표시했습니다.`;
+                    
+                    warningIcon.appendChild(warningTooltip);
+                    pileElement.appendChild(warningIcon);
+                    
+                    // 경고 개수 표시
+                    if (gameState.pileWarnings[pileType].length > 1) {
+                        const warningCount = document.createElement('div');
+                        warningCount.className = 'warning-count';
+                        warningCount.textContent = gameState.pileWarnings[pileType].length;
+                        pileElement.appendChild(warningCount);
+                    }
                 } else {
                     pileElement.classList.remove('has-warning');
                 }
 
                 // 의도 표시 업데이트
-                if (gameState.pileIntentions && gameState.pileIntentions[pileType]) {
+                if (gameState.pileIntentions && gameState.pileIntentions[pileType] && gameState.pileIntentions[pileType].length > 0) {
                     pileElement.classList.add('has-intention');
+                    
+                    // 의도 아이콘 생성
+                    const intentionIcon = document.createElement('div');
+                    intentionIcon.className = 'intention-icon';
+                    intentionIcon.textContent = '💩';
+                    
+                    // 의도 툴팁 생성
+                    const intentionTooltip = document.createElement('div');
+                    intentionTooltip.className = 'icon-tooltip';
+                    const intentionPlayers = gameState.pileIntentions[pileType].map(i => i.playerName);
+                    intentionTooltip.textContent = `${intentionPlayers.join(', ')}님이 "여기!"를 표시했습니다.`;
+                    
+                    intentionIcon.appendChild(intentionTooltip);
+                    pileElement.appendChild(intentionIcon);
+                    
+                    // 의도 개수 표시
+                    if (gameState.pileIntentions[pileType].length > 1) {
+                        const intentionCount = document.createElement('div');
+                        intentionCount.className = 'intention-count';
+                        intentionCount.textContent = gameState.pileIntentions[pileType].length;
+                        pileElement.appendChild(intentionCount);
+                    }
                 } else {
                     pileElement.classList.remove('has-intention');
                 }
-
-                // 똥 이펙트는 서버 상태와 관계없이 클라이언트에서만 관리
-                // (서버의 pilePoopEffects는 사용하지 않음)
             });
 
             // 경고 버튼 상태 업데이트
@@ -788,7 +365,8 @@
                 Object.keys(gameState.pileWarnings).forEach(pileType => {
                     const warningBtn = document.querySelector(`button.warning-btn[data-pile="${pileType}"]`);
                     if (warningBtn) {
-                        if (gameState.pileWarnings[pileType]) {
+                        const hasMyWarning = gameState.pileWarnings[pileType].some(w => w.playerId === socket.id);
+                        if (hasMyWarning) {
                             warningBtn.classList.add('active');
                         } else {
                             warningBtn.classList.remove('active');
@@ -802,7 +380,8 @@
                 Object.keys(gameState.pileIntentions).forEach(pileType => {
                     const intentionBtn = document.querySelector(`button.intention-btn[data-pile="${pileType}"]`);
                     if (intentionBtn) {
-                        if (gameState.pileIntentions[pileType]) {
+                        const hasMyIntention = gameState.pileIntentions[pileType].some(i => i.playerId === socket.id);
+                        if (hasMyIntention) {
                             intentionBtn.classList.add('active');
                         } else {
                             intentionBtn.classList.remove('active');
@@ -810,6 +389,7 @@
                     }
                 });
             }
+
 
             // 손패 업데이트 (좋은 수 카드 포함)
             updateHand();
@@ -978,6 +558,9 @@
                 gameResultMessage.textContent = '모든 카드를 성공적으로 없앴습니다!';
                 gameOverDiv.classList.add('win');
                 addToGameLog('🎉 게임에서 승리했습니다!', 'success');
+                
+                // 폭죽 애니메이션 실행
+                createFireworks();
             } else {
                 gameResult.textContent = '패배...';
                 gameResultMessage.textContent = `더 이상 카드를 낼 수 없습니다. 남은 카드: ${gameState.cardsRemaining}장`;
@@ -1009,6 +592,150 @@
             addToGameLog(message, type);
         }
 
+
+        function createFireworks() {
+            const fireworksContainer = document.createElement('div');
+            fireworksContainer.className = 'fireworks';
+            document.body.appendChild(fireworksContainer);
+            
+            // 여러 위치에서 폭죽 생성
+            const positions = [
+                { x: '20%', y: '30%' },
+                { x: '80%', y: '25%' },
+                { x: '50%', y: '40%' },
+                { x: '30%', y: '60%' },
+                { x: '70%', y: '55%' },
+                { x: '15%', y: '70%' },
+                { x: '85%', y: '75%' }
+            ];
+            
+            positions.forEach((pos, index) => {
+                setTimeout(() => {
+                    createSingleFirework(fireworksContainer, pos.x, pos.y);
+                }, index * 300);
+            });
+            
+            // 5초 후 폭죽 컨테이너 제거
+            setTimeout(() => {
+                if (fireworksContainer.parentNode) {
+                    fireworksContainer.parentNode.removeChild(fireworksContainer);
+                }
+            }, 5000);
+        }
+        
+        function createSingleFirework(container, x, y) {
+            const colors = ['#ff1744', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800', '#ff5722'];
+            const goldColors = ['#ffd700', '#ffed4e', '#fff176', '#ffcc02'];
+            const silverColors = ['#c0c0c0', '#e8eaf6', '#f5f5f5', '#ffffff'];
+            
+            // 메인 스파크들 (더 크고 밝게)
+            const numSparks = 20;
+            for (let i = 0; i < numSparks; i++) {
+                const spark = document.createElement('div');
+                spark.className = 'firework-spark';
+                spark.style.left = x;
+                spark.style.top = y;
+                spark.style.width = '6px';
+                spark.style.height = '6px';
+                spark.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                const angle = (i / numSparks) * 2 * Math.PI + (Math.random() - 0.5) * 0.5;
+                const distance = 80 + Math.random() * 80;
+                const dx = Math.cos(angle) * distance;
+                const dy = Math.sin(angle) * distance;
+                
+                spark.style.setProperty('--sx', dx + 'px');
+                spark.style.setProperty('--sy', dy + 'px');
+                spark.style.color = spark.style.backgroundColor;
+                
+                container.appendChild(spark);
+                
+                setTimeout(() => {
+                    if (spark.parentNode) spark.parentNode.removeChild(spark);
+                }, 2500);
+            }
+            
+            // 파티클 효과들 (작은 점들)
+            const numParticles = 30;
+            for (let i = 0; i < numParticles; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'firework-particle';
+                particle.style.left = x;
+                particle.style.top = y;
+                particle.style.width = '3px';
+                particle.style.height = '3px';
+                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                const angle = Math.random() * 2 * Math.PI;
+                const distance = 40 + Math.random() * 120;
+                const px = Math.cos(angle) * distance;
+                const py = Math.sin(angle) * distance;
+                
+                particle.style.setProperty('--px', px + 'px');
+                particle.style.setProperty('--py', py + 'px');
+                particle.style.color = particle.style.backgroundColor;
+                
+                container.appendChild(particle);
+                
+                setTimeout(() => {
+                    if (particle.parentNode) particle.parentNode.removeChild(particle);
+                }, 3000);
+            }
+            
+            // 트레일 효과들
+            const numTrails = 15;
+            for (let i = 0; i < numTrails; i++) {
+                const trail = document.createElement('div');
+                trail.className = 'firework-trail';
+                trail.style.left = x;
+                trail.style.top = y;
+                trail.style.width = '4px';
+                trail.style.height = '4px';
+                trail.style.backgroundColor = goldColors[Math.floor(Math.random() * goldColors.length)];
+                
+                const angle = Math.random() * 2 * Math.PI;
+                const distance = 60 + Math.random() * 60;
+                const tx = Math.cos(angle) * distance;
+                const ty = Math.sin(angle) * distance;
+                
+                trail.style.setProperty('--tx', tx + 'px');
+                trail.style.setProperty('--ty', ty + 'px');
+                trail.style.color = trail.style.backgroundColor;
+                
+                container.appendChild(trail);
+                
+                setTimeout(() => {
+                    if (trail.parentNode) trail.parentNode.removeChild(trail);
+                }, 2000);
+            }
+            
+            // 별 모양 효과들
+            const numStars = 8;
+            for (let i = 0; i < numStars; i++) {
+                const star = document.createElement('div');
+                star.className = 'firework-star';
+                star.style.left = x;
+                star.style.top = y;
+                star.innerHTML = '✨';
+                star.style.fontSize = (12 + Math.random() * 8) + 'px';
+                star.style.color = silverColors[Math.floor(Math.random() * silverColors.length)];
+                
+                const angle = Math.random() * 2 * Math.PI;
+                const distance = 50 + Math.random() * 100;
+                const stx = Math.cos(angle) * distance;
+                const sty = Math.sin(angle) * distance;
+                
+                star.style.setProperty('--stx', stx + 'px');
+                star.style.setProperty('--sty', sty + 'px');
+                
+                container.appendChild(star);
+                
+                setTimeout(() => {
+                    if (star.parentNode) star.parentNode.removeChild(star);
+                }, 2500);
+            }
+        }
+
         // 더미 클릭 이벤트
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.pile').forEach(pile => {
@@ -1023,6 +750,7 @@
                         document.querySelectorAll('.pile').forEach(p => p.classList.remove('valid-drop'));
                     }
                 });
+                
             });
         });
 

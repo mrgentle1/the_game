@@ -34,16 +34,16 @@ class GameRoom {
                 turnInProgress: false
             },
             pileWarnings: {
-                up1: null,
-                up2: null,
-                down1: null,
-                down2: null
+                up1: [],
+                up2: [],
+                down1: [],
+                down2: []
             },
             pileIntentions: {
-                up1: null,
-                up2: null,
-                down1: null,
-                down2: null
+                up1: [],
+                up2: [],
+                down1: [],
+                down2: []
             },
             pilePoopEffects: {
                 up1: false,
@@ -246,11 +246,14 @@ class GameRoom {
         
         if (!player) return { success: false, message: '플레이어를 찾을 수 없습니다.' };
         
+        const warningArray = this.gameState.pileWarnings[pileType];
+        const existingIndex = warningArray.findIndex(w => w.playerId === playerId);
+        
         // 기존 경고가 있으면 제거, 없으면 추가
-        if (this.gameState.pileWarnings[pileType] === playerId) {
-            this.gameState.pileWarnings[pileType] = null;
+        if (existingIndex !== -1) {
+            warningArray.splice(existingIndex, 1);
         } else {
-            this.gameState.pileWarnings[pileType] = playerId;
+            warningArray.push({ playerId, playerName: player.name });
         }
         
         return { success: true, playerId, pileType, playerName: player.name };
@@ -262,11 +265,14 @@ class GameRoom {
         
         if (!player) return { success: false, message: '플레이어를 찾을 수 없습니다.' };
         
+        const intentionArray = this.gameState.pileIntentions[pileType];
+        const existingIndex = intentionArray.findIndex(i => i.playerId === playerId);
+        
         // 기존 의도가 있으면 제거, 없으면 추가
-        if (this.gameState.pileIntentions[pileType] === playerId) {
-            this.gameState.pileIntentions[pileType] = null;
+        if (existingIndex !== -1) {
+            intentionArray.splice(existingIndex, 1);
         } else {
-            this.gameState.pileIntentions[pileType] = playerId;
+            intentionArray.push({ playerId, playerName: player.name });
         }
         
         return { success: true, playerId, pileType, playerName: player.name };
@@ -496,7 +502,7 @@ io.on('connection', (socket) => {
                 playerId: result.playerId,
                 playerName: result.playerName,
                 pileType: result.pileType,
-                isActive: room.gameState.pileWarnings[pileType] !== null
+                isActive: room.gameState.pileWarnings[pileType].length > 0
             });
         }
     });
@@ -519,7 +525,7 @@ io.on('connection', (socket) => {
                 playerId: result.playerId,
                 playerName: result.playerName,
                 pileType: result.pileType,
-                isActive: room.gameState.pileIntentions[pileType] !== null
+                isActive: room.gameState.pileIntentions[pileType].length > 0
             });
         }
     });
