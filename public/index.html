@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>더 게임 (The Game)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 10px;
+        }
+
+        .login-screen {
+            text-align: center;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 40px;
+            margin: 50px auto;
+            max-width: 400px;
+        }
+
+        .game-screen {
+            display: none;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background 0.3s;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        .players-list {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .player-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .player-ready {
+            background: rgba(76, 175, 80, 0.3);
+        }
+
+        .player-current {
+            background: rgba(255, 193, 7, 0.3);
+            border: 2px solid #ffc107;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .pile-section {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .pile-title {
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .piles {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .pile {
+            width: 80px;
+            height: 100px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            color: #333;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            position: relative;
+        }
+
+        .pile:hover {
+            transform: scale(1.05);
+        }
+
+        .pile.valid-drop {
+            background: rgba(76, 175, 80, 0.8);
+        }
+
+        .pile.has-warning {
+            border: 3px solid #ff4444;
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+            animation: warningPulse 1.5s infinite;
+        }
+
+        .pile.has-warning::after {
+            content: '⚠️';
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            font-size: 1.2em;
+            background: #ff4444;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes warningPulse {
+            0%, 100% { box-shadow: 0 0 10px rgba(255, 68, 68, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(255, 68, 68, 0.8); }
+        }
+
+        .warning-controls {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .warning-btn {
+            background: #ff9800;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            margin: 2px;
+        }
+
+        .warning-btn:hover {
+            background: #f57c00;
+        }
+
+        .warning-btn.active {
+            background: #ff4444;
+        }
+
+        .pile.has-intention {
+            border: 3px solid #2196F3;
+            box-shadow: 0 0 10px rgba(33, 150, 243, 0.5);
+        }
+
+        .pile.has-intention::before {
+            content: '👆';
+            position: absolute;
+            top: -15px;
+            left: -15px;
+            font-size: 1.2em;
+            background: #2196F3;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pile.has-poop {
+            animation: poopShake 0.5s ease-in-out;
+        }
+
+        .pile.has-poop::after {
+            content: '💩';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2em;
+            z-index: 10;
+            animation: poopPulse 3s ease-in-out;
+        }
+
+        @keyframes poopShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        @keyframes poopPulse {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+        }
+
+        .intention-btn {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            margin: 2px;
+        }
+
+        .intention-btn:hover {
+            background: #1976D2;
+        }
+
+        .intention-btn.active {
+            background: #0D47A1;
+            box-shadow: 0 0 5px rgba(33, 150, 243, 0.8);
+        }
+
+        .hand {
+            text-align: center;
+            margin-top: 20px;
+            border-radius: 10px;
+            padding: 15px;
+            transition: border 0.3s ease;
+        }
+
+        .hand.my-turn {
+            border: 3px solid #ffc107;
+            background: rgba(255, 193, 7, 0.1);
+            box-shadow: 0 0 15px rgba(255, 193, 7, 0.3);
+        }
+
+        .card.good-move {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card.good-move::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.6), transparent);
+            animation: sparkle 2s infinite;
+        }
+
+        .card.good-move::after {
+            content: '✨';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 0.8em;
+            animation: twinkle 1.5s infinite;
+        }
+
+        @keyframes sparkle {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.5; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        .hand {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .hand h3 {
+            margin-bottom: 15px;
+        }
+
+        .cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .card {
+            width: 60px;
+            height: 80px;
+            background: white;
+            color: #333;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            user-select: none;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card.selected {
+            background: #ffeb3b;
+            transform: translateY(-10px);
+        }
+
+        .game-info {
+            text-align: center;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            text-align: center;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.2);
+        }
+
+        .success {
+            background: rgba(76, 175, 80, 0.3);
+        }
+
+        .error {
+            background: rgba(244, 67, 54, 0.3);
+        }
+
+        .game-log {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            max-height: 200px;
+        }
+
+        #logMessages {
+            max-height: 150px;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.2);
+            border-radius: 5px;
+            padding: 10px;
+        }
+
+        .log-message {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.9em;
+            line-height: 1.3;
+        }
+
+        .log-message:last-child {
+            border-bottom: none;
+        }
+
+        .log-message.success {
+            color: #4CAF50;
+        }
+
+        .log-message.error {
+            color: #ff6b6b;
+        }
+
+        .log-message.info {
+            color: #64b5f6;
+        }
+
+        .log-timestamp {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.8em;
+            margin-right: 8px;
+        }
+
+        .game-over {
+            text-align: center;
+            background: rgba(255,255,255,0.15);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+        }
+
+        .win {
+            background: rgba(76, 175, 80, 0.3);
+        }
+
+        .lose {
+            background: rgba(244, 67, 54, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .game-board {
+                grid-template-columns: 1fr;
+            }
+            
+            .cards {
+                gap: 5px;
+            }
+            
+            .card {
+                width: 50px;
+                height: 70px;
+                font-size: 0.9em;
+            }
+            
+            .pile {
+                width: 70px;
+                height: 90px;
+                font-size: 1.3em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>더 게임 (The Game)</h1>
+            <p>협동 카드 게임 - 모든 카드를 없애세요!</p>
+        </div>
+
+        <!-- 로그인 화면 -->
+        <div id="loginScreen" class="login-screen">
+            <div class="input-group">
+                <label for="playerName">플레이어 이름:</label>
+                <input type="text" id="playerName" placeholder="이름을 입력하세요" maxlength="20">
+            </div>
+            <div class="input-group">
+                <label for="roomId">방 ID:</label>
+                <input type="text" id="roomId" placeholder="방 ID를 입력하세요" maxlength="20">
+            </div>
+            <button onclick="joinRoom()">게임 참가</button>
+        </div>
+
+        <!-- 게임 화면 -->
+        <div id="gameScreen" class="game-screen">
+            <!-- 플레이어 목록 -->
+            <div class="players-list">
+                <h3>플레이어 목록</h3>
+                <div id="playersList"></div>
+                <div style="text-align: center; margin-top: 15px;">
+                    <button id="readyBtn" onclick="toggleReady()">준비</button>
+                    <button id="startBtn" onclick="startGame()" style="display: none;">게임 시작</button>
+                </div>
+            </div>
+
+            <!-- 게임 정보 -->
+            <div id="gameInfo" class="game-info" style="display: none;">
+                <h3>게임 정보</h3>
+                <p>남은 카드: <span id="cardsRemaining">0</span>개</p>
+                <p>현재 턴: <span id="currentPlayer"></span></p>
+                <p>이번 턴에 놓은 카드: <span id="cardsPlayedThisTurn">0</span>장</p>
+                <div id="turnControls" style="margin-top: 10px;">
+                    <button id="endTurnBtn" onclick="endTurn()" disabled>턴 종료</button>
+                </div>
+            </div>
+
+            <!-- 게임 로그 -->
+            <div id="gameLog" class="game-log" style="display: none;">
+                <h3>게임 로그</h3>
+                <div id="logMessages"></div>
+            </div>
+
+            <!-- 게임 보드 -->
+            <div id="gameBoard" class="game-board" style="display: none;">
+                <div class="pile-section">
+                    <div class="pile-title">오름차순 (↑)</div>
+                    <div class="piles">
+                        <div class="pile" id="up1" data-pile="up1">1</div>
+                        <div class="pile" id="up2" data-pile="up2">1</div>
+                    </div>
+                    <div class="warning-controls">
+                        <button class="warning-btn" data-pile="up1" onclick="toggleWarning('up1')">더미1 그만!</button>
+                        <button class="warning-btn" data-pile="up2" onclick="toggleWarning('up2')">더미2 그만!</button>
+                        <br>
+                        <button class="intention-btn" data-pile="up1" onclick="toggleIntention('up1')">더미1 여기!</button>
+                        <button class="intention-btn" data-pile="up2" onclick="toggleIntention('up2')">더미2 여기!</button>
+                    </div>
+                </div>
+                <div class="pile-section">
+                    <div class="pile-title">내림차순 (↓)</div>
+                    <div class="piles">
+                        <div class="pile" id="down1" data-pile="down1">100</div>
+                        <div class="pile" id="down2" data-pile="down2">100</div>
+                    </div>
+                    <div class="warning-controls">
+                        <button class="warning-btn" data-pile="down1" onclick="toggleWarning('down1')">더미1 그만!</button>
+                        <button class="warning-btn" data-pile="down2" onclick="toggleWarning('down2')">더미2 그만!</button>
+                        <br>
+                        <button class="intention-btn" data-pile="down1" onclick="toggleIntention('down1')">더미1 여기!</button>
+                        <button class="intention-btn" data-pile="down2" onclick="toggleIntention('down2')">더미2 여기!</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 손패 -->
+            <div id="handSection" class="hand" style="display: none;">
+                <h3>내 카드</h3>
+                <div id="myCards" class="cards"></div>
+            </div>
+
+            <!-- 게임 오버 -->
+            <div id="gameOver" class="game-over" style="display: none;">
+                <h2 id="gameResult"></h2>
+                <p id="gameResultMessage"></p>
+                <button onclick="location.reload()">새 게임</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let socket;
+        let selectedCard = null;
+        let gameState = null;
+        let myPlayerId = null;
+
+        function joinRoom() {
+            const playerName = document.getElementById('playerName').value.trim();
+            const roomId = document.getElementById('roomId').value.trim();
+
+            if (!playerName || !roomId) {
+                alert('이름과 방 ID를 입력해주세요.');
+                return;
+            }
+
+            socket = io();
+            myPlayerId = socket.id;
+
+            socket.emit('joinRoom', { roomId, playerName });
+
+            socket.on('joinSuccess', (data) => {
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('gameScreen').style.display = 'block';
+                addToGameLog('방에 참가했습니다!', 'success');
+            });
+
+            socket.on('joinFailed', (data) => {
+                alert(data.message);
+            });
+
+            socket.on('gameState', updateGameState);
+            socket.on('gameStarted', handleGameStarted);
+            socket.on('cardPlayed', handleCardPlayed);
+            socket.on('turnEnded', handleTurnEnded);
+            socket.on('warningSet', handleWarningSet);
+            socket.on('intentionSet', handleIntentionSet);
+            socket.on('playerDisconnected', handlePlayerDisconnected);
+            socket.on('invalidMove', (data) => {
+                addToGameLog(data.message, 'error');
+            });
+        }
+
+        function updateGameState(state) {
+            gameState = state;
+            updatePlayersList();
+            
+            if (state.cardsRemaining !== undefined) {
+                document.getElementById('cardsRemaining').textContent = state.cardsRemaining;
+            }
+
+            if (state.started) {
+                updateTurnInfo();
+                updateGameDisplay(); // 여기서 updateHand()도 호출되어 좋은 수 카드가 실시간 업데이트됨
+            }
+        }
+
+        function updateTurnInfo() {
+            if (gameState.currentPlayerName) {
+                document.getElementById('currentPlayer').textContent = gameState.currentPlayerName;
+            }
+            
+            if (gameState.turnState) {
+                document.getElementById('cardsPlayedThisTurn').textContent = gameState.turnState.cardsPlayedThisTurn;
+            }
+
+            // 턴 종료 버튼 활성화/비활성화
+            const endTurnBtn = document.getElementById('endTurnBtn');
+            if (gameState.isMyTurn) {
+                endTurnBtn.disabled = !gameState.canEndTurn;
+                endTurnBtn.style.background = gameState.canEndTurn ? '#4CAF50' : '#666';
+            } else {
+                endTurnBtn.disabled = true;
+                endTurnBtn.style.background = '#666';
+            }
+
+            // 내 턴이면 카드 선택 가능하게
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                if (gameState.isMyTurn) {
+                    card.style.cursor = 'pointer';
+                    card.style.opacity = '1';
+                } else {
+                    card.style.cursor = 'not-allowed';
+                    card.style.opacity = '0.6';
+                }
+            });
+
+            // 손패 섹션에 내 턴 표시
+            const handSection = document.getElementById('handSection');
+            if (gameState.isMyTurn) {
+                handSection.classList.add('my-turn');
+                
+                // 좋은 수가 있는지 체크하고 알림
+                if (gameState.goodMoveCards && gameState.goodMoveCards.length > 0) {
+                    // 중복 알림 방지를 위해 이전 알림이 없을 때만 표시
+                    const lastLog = document.querySelector('#logMessages .log-message:last-child');
+                    if (!lastLog || !lastLog.textContent.includes('💡 좋은 수가 있습니다')) {
+                        addToGameLog(`💡 좋은 수가 있습니다! (10차이 역방향 플레이 가능)`, 'info');
+                    }
+                }
+            } else {
+                handSection.classList.remove('my-turn');
+            }
+        }
+
+        function updatePlayersList() {
+            const playersList = document.getElementById('playersList');
+            playersList.innerHTML = '';
+
+            gameState.players.forEach(player => {
+                const playerDiv = document.createElement('div');
+                let className = 'player-item';
+                
+                if (player.ready && !gameState.started) {
+                    className += ' player-ready';
+                }
+                if (player.isCurrentPlayer && gameState.started) {
+                    className += ' player-current';
+                }
+                
+                playerDiv.className = className;
+                
+                let handInfo = '';
+                if (gameState.started && player.handSize !== undefined) {
+                    handInfo = ` (카드 ${player.handSize}장)`;
+                }
+                
+                let status = '';
+                if (!gameState.started) {
+                    status = player.ready ? '✓ 준비완료' : '⏳ 대기중';
+                } else if (player.isCurrentPlayer) {
+                    status = '🎯 현재 턴';
+                } else {
+                    status = '⏳ 대기중';
+                }
+                
+                playerDiv.innerHTML = `
+                    <span>${player.name}${handInfo}</span>
+                    <span>${status}</span>
+                `;
+                playersList.appendChild(playerDiv);
+            });
+
+            // 시작 버튼 표시 조건
+            const allReady = gameState.players.every(p => p.ready);
+            const minPlayers = gameState.players.length >= 2;
+            
+            if (allReady && minPlayers && !gameState.started) {
+                document.getElementById('startBtn').style.display = 'inline-block';
+            } else {
+                document.getElementById('startBtn').style.display = 'none';
+            }
+        }
+
+        function toggleReady() {
+            socket.emit('playerReady');
+        }
+
+        function startGame() {
+            socket.emit('startGame');
+        }
+
+        function handleGameStarted(state) {
+            gameState = state;
+            
+            document.getElementById('gameInfo').style.display = 'block';
+            document.getElementById('gameLog').style.display = 'block';
+            document.getElementById('gameBoard').style.display = 'grid';
+            document.getElementById('handSection').style.display = 'block';
+            document.getElementById('readyBtn').style.display = 'none';
+            document.getElementById('startBtn').style.display = 'none';
+            
+            updatePlayersList();
+            updateGameDisplay();
+            updateTurnInfo();
+            
+            addToGameLog('게임이 시작되었습니다!', 'success');
+            addToGameLog(`${gameState.currentPlayerName}님의 턴입니다.`, 'info');
+        }
+
+        function updateGameDisplay() {
+            // 더미 업데이트
+            Object.keys(gameState.piles).forEach(pileType => {
+                const pile = gameState.piles[pileType];
+                const topCard = pile[pile.length - 1];
+                const pileElement = document.getElementById(pileType);
+                pileElement.textContent = topCard;
+                
+                // 경고 표시 업데이트
+                if (gameState.pileWarnings && gameState.pileWarnings[pileType]) {
+                    pileElement.classList.add('has-warning');
+                } else {
+                    pileElement.classList.remove('has-warning');
+                }
+
+                // 의도 표시 업데이트
+                if (gameState.pileIntentions && gameState.pileIntentions[pileType]) {
+                    pileElement.classList.add('has-intention');
+                } else {
+                    pileElement.classList.remove('has-intention');
+                }
+
+                // 똥 이펙트는 서버 상태와 관계없이 클라이언트에서만 관리
+                // (서버의 pilePoopEffects는 사용하지 않음)
+            });
+
+            // 경고 버튼 상태 업데이트
+            if (gameState.pileWarnings) {
+                Object.keys(gameState.pileWarnings).forEach(pileType => {
+                    const warningBtn = document.querySelector(`button.warning-btn[data-pile="${pileType}"]`);
+                    if (warningBtn) {
+                        if (gameState.pileWarnings[pileType]) {
+                            warningBtn.classList.add('active');
+                        } else {
+                            warningBtn.classList.remove('active');
+                        }
+                    }
+                });
+            }
+
+            // 의도 버튼 상태 업데이트
+            if (gameState.pileIntentions) {
+                Object.keys(gameState.pileIntentions).forEach(pileType => {
+                    const intentionBtn = document.querySelector(`button.intention-btn[data-pile="${pileType}"]`);
+                    if (intentionBtn) {
+                        if (gameState.pileIntentions[pileType]) {
+                            intentionBtn.classList.add('active');
+                        } else {
+                            intentionBtn.classList.remove('active');
+                        }
+                    }
+                });
+            }
+
+            // 손패 업데이트 (좋은 수 카드 포함)
+            updateHand();
+            
+            // 카드 수 업데이트
+            document.getElementById('cardsRemaining').textContent = gameState.cardsRemaining;
+            
+            // 게임 종료 체크
+            if (gameState.ended) {
+                showGameOver();
+            }
+        }
+
+        function updateHand() {
+            const myCards = document.getElementById('myCards');
+            myCards.innerHTML = '';
+
+            gameState.myHand.forEach(card => {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'card';
+                
+                // 좋은 수 카드인지 체크 (항상 체크, 내 턴 여부와 관계없이)
+                if (gameState.goodMoveCards && gameState.goodMoveCards.includes(card)) {
+                    cardDiv.classList.add('good-move');
+                }
+                
+                cardDiv.textContent = card;
+                cardDiv.onclick = () => selectCard(card, cardDiv);
+                myCards.appendChild(cardDiv);
+            });
+        }
+
+        function selectCard(card, cardElement) {
+            // 내 턴이 아니면 카드 선택 불가
+            if (!gameState.isMyTurn) {
+                addToGameLog('당신의 턴이 아닙니다.', 'error');
+                return;
+            }
+
+            // 이전 선택 해제
+            document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+            document.querySelectorAll('.pile').forEach(p => p.classList.remove('valid-drop'));
+
+            selectedCard = card;
+            cardElement.classList.add('selected');
+
+            // 놓을 수 있는 더미 표시
+            Object.keys(gameState.piles).forEach(pileType => {
+                if (canPlayCard(card, pileType)) {
+                    document.getElementById(pileType).classList.add('valid-drop');
+                }
+            });
+        }
+
+        function endTurn() {
+            // 선택된 카드와 더미 하이라이트 제거
+            selectedCard = null;
+            document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+            document.querySelectorAll('.pile').forEach(p => p.classList.remove('valid-drop'));
+            
+            socket.emit('endTurn');
+        }
+
+        function handleTurnEnded(data) {
+            addToGameLog(`${data.previousPlayer}님의 턴이 끝났습니다. ${data.currentPlayer}님의 턴입니다.`, 'info');
+            
+            // 패배 조건 체크
+            if (data.isDefeated) {
+                addToGameLog(`${data.currentPlayer}님이 낼 수 있는 카드가 없습니다. 게임에서 패배했습니다.`, 'error');
+            }
+            
+            // 내 턴이 되었을 때 좋은 수가 있는지 체크 (내 턴일 때만 알림)
+            setTimeout(() => {
+                if (gameState.isMyTurn && gameState.goodMoveCards && gameState.goodMoveCards.length > 0) {
+                    addToGameLog(`💡 좋은 수가 있습니다! (10차이 역방향 플레이 가능)`, 'info');
+                }
+            }, 100);
+        }
+
+        function handlePlayerDisconnected(data) {
+            addToGameLog(data.message, 'error');
+            if (data.newCurrentPlayer) {
+                addToGameLog(`${data.newCurrentPlayer}님의 턴입니다.`, 'info');
+            }
+        }
+
+        function toggleWarning(pileType) {
+            socket.emit('setWarning', { pileType });
+        }
+
+        function handleWarningSet(data) {
+            if (data.isActive) {
+                addToGameLog(`${data.playerName}님이 ${getPileTypeName(data.pileType)}에 "그만!"을 표시했습니다.`, 'error');
+            } else {
+                addToGameLog(`${data.playerName}님이 ${getPileTypeName(data.pileType)}의 "그만!" 표시를 해제했습니다.`, 'success');
+            }
+        }
+
+        function canPlayCard(card, pileType) {
+            const pile = gameState.piles[pileType];
+            const topCard = pile[pile.length - 1];
+
+            switch (pileType) {
+                case 'up1':
+                case 'up2':
+                    return card > topCard || card === topCard - 10;
+                case 'down1':
+                case 'down2':
+                    return card < topCard || card === topCard + 10;
+                default:
+                    return false;
+            }
+        }
+
+        function handleCardPlayed(data) {
+            const poopEmoji = data.isPoopMove ? ' 💩' : '';
+            
+            // 10차이 역방향 플레이인지 체크
+            const isGoodMove = Math.abs(data.card - data.previousCard) === 10;
+            const goodMoveEmoji = isGoodMove ? ' ✨' : '';
+            
+            addToGameLog(`${data.playerName}님이 ${data.previousCard} → ${data.card}를 ${getPileTypeName(data.pileType)}에 놓았습니다. (${data.cardsPlayedThisTurn}장 플레이)${poopEmoji}${goodMoveEmoji}`, 'success');
+            
+            // 똥 이펙트 처리 (클라이언트에서만)
+            if (data.isPoopMove) {
+                const pileElement = document.getElementById(data.pileType);
+                pileElement.classList.add('has-poop');
+                
+                // 3초 후 이펙트 제거
+                setTimeout(() => {
+                    pileElement.classList.remove('has-poop');
+                }, 3000);
+            }
+        }
+
+        function toggleIntention(pileType) {
+            socket.emit('setIntention', { pileType });
+        }
+
+        function handleIntentionSet(data) {
+            if (data.isActive) {
+                addToGameLog(`${data.playerName}님이 ${getPileTypeName(data.pileType)}에 "여기!"를 표시했습니다.`, 'info');
+            } else {
+                addToGameLog(`${data.playerName}님이 ${getPileTypeName(data.pileType)}의 "여기!" 표시를 해제했습니다.`, 'info');
+            }
+        }
+
+        function getPileTypeName(pileType) {
+            const names = {
+                'up1': '오름차순 더미 1',
+                'up2': '오름차순 더미 2',
+                'down1': '내림차순 더미 1',
+                'down2': '내림차순 더미 2'
+            };
+            return names[pileType] || pileType;
+        }
+
+        function showGameOver() {
+            document.getElementById('gameOver').style.display = 'block';
+            const gameResult = document.getElementById('gameResult');
+            const gameResultMessage = document.getElementById('gameResultMessage');
+            const gameOverDiv = document.getElementById('gameOver');
+
+            if (gameState.won) {
+                gameResult.textContent = '승리!';
+                gameResultMessage.textContent = '모든 카드를 성공적으로 없앴습니다!';
+                gameOverDiv.classList.add('win');
+                addToGameLog('🎉 게임에서 승리했습니다!', 'success');
+            } else {
+                gameResult.textContent = '패배...';
+                gameResultMessage.textContent = `더 이상 카드를 낼 수 없습니다. 남은 카드: ${gameState.cardsRemaining}장`;
+                gameOverDiv.classList.add('lose');
+                addToGameLog(`😢 게임에서 패배했습니다. 남은 카드: ${gameState.cardsRemaining}장`, 'error');
+            }
+        }
+
+        function addToGameLog(message, type = 'info') {
+            const logMessages = document.getElementById('logMessages');
+            const logDiv = document.createElement('div');
+            logDiv.className = `log-message ${type}`;
+            
+            const timestamp = new Date().toLocaleTimeString('ko-KR', { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit' 
+            });
+            
+            logDiv.innerHTML = `<span class="log-timestamp">[${timestamp}]</span>${message}`;
+            logMessages.appendChild(logDiv);
+            
+            // 스크롤을 맨 아래로
+            logMessages.scrollTop = logMessages.scrollHeight;
+        }
+
+        function showMessage(message, type) {
+            // 기존 showMessage는 이제 addToGameLog로 대체됨
+            addToGameLog(message, type);
+        }
+
+        // 더미 클릭 이벤트
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.pile').forEach(pile => {
+                pile.addEventListener('click', () => {
+                    if (selectedCard && pile.classList.contains('valid-drop')) {
+                        const pileType = pile.dataset.pile;
+                        socket.emit('playCard', { card: selectedCard, pileType });
+                        
+                        // 선택 해제
+                        selectedCard = null;
+                        document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+                        document.querySelectorAll('.pile').forEach(p => p.classList.remove('valid-drop'));
+                    }
+                });
+            });
+        });
+
+        // 엔터키로 방 참가
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('playerName').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    document.getElementById('roomId').focus();
+                }
+            });
+            
+            document.getElementById('roomId').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    joinRoom();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
