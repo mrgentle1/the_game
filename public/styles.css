@@ -148,10 +148,12 @@ button:disabled {
     font-weight: bold;
     cursor: pointer;
     transition: transform 0.2s;
+    overflow: visible;
     position: relative;
 }
 
 .pile:hover {
+    z-index:10;
     transform: scale(1.05);
 }
 
