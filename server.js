@@ -106,6 +106,9 @@ class GameRoom {
             // 턴 상태 초기화 (새로운 플레이어의 턴으로)
             this.gameState.turnState.cardsPlayedThisTurn = 0;
             
+            // 새로운 플레이어의 패배 조건 체크
+            this.checkDefeatCondition();
+            
             return { 
                 playerRemoved: true, 
                 wasCurrentPlayer: true,
@@ -126,6 +129,10 @@ class GameRoom {
         this.gameState.currentPlayerIndex = 0;
         this.gameState.turnState.turnInProgress = true;
         this.dealCards();
+        
+        // 게임 시작 직후 패배 조건 체크
+        this.checkDefeatCondition();
+        
         return true;
     }
 
@@ -191,10 +198,15 @@ class GameRoom {
         const isPoopMove = Math.abs(card - previousCard) >= 20;
         
         this.updateGameState();
+        
+        // 카드를 놓은 후 패배 조건 체크
+        const isDefeated = this.checkDefeatCondition();
+        
         return { 
             success: true, 
             previousCard, 
-            isPoopMove 
+            isPoopMove,
+            isDefeated
         };
     }
 
@@ -293,22 +305,31 @@ class GameRoom {
     }
 
     checkDefeatCondition() {
-        // 패배 조건 체크 - 현재 턴 플레이어가 카드를 낼 수 없는 경우
+        // 패배 조건 체크 - 현재 낼 수 있는 카드가 없으면서 최소 요구수를 채우지 못한 경우
         if (this.gameState.started && this.players.length > 0 && !this.gameState.ended) {
             const currentPlayer = this.players[this.gameState.currentPlayerIndex];
             
             if (currentPlayer) {
-                const canCurrentPlayerPlay = currentPlayer.hand.some(card => 
-                    this.canPlayCard(card, 'up1') || 
-                    this.canPlayCard(card, 'up2') || 
-                    this.canPlayCard(card, 'down1') || 
-                    this.canPlayCard(card, 'down2')
-                );
+                // 덱에 카드가 남아있으면 최소 2장, 없으면 최소 1장 필요
+                const minRequired = this.gameState.deck.length === 0 ? 1 : 2;
                 
-                if (!canCurrentPlayerPlay && this.gameState.cardsRemaining > 0) {
-                    this.gameState.ended = true;
-                    this.gameState.won = false;
-                    return true;
+                // 이번 턴에 이미 놓은 카드 수
+                const cardsPlayedThisTurn = this.gameState.turnState.cardsPlayedThisTurn;
+                
+                // 아직 최소 요구수를 채우지 못했고, 현재 낼 수 있는 카드가 없으면 패배
+                if (cardsPlayedThisTurn < minRequired) {
+                    const canCurrentPlayerPlay = currentPlayer.hand.some(card => 
+                        this.canPlayCard(card, 'up1') || 
+                        this.canPlayCard(card, 'up2') || 
+                        this.canPlayCard(card, 'down1') || 
+                        this.canPlayCard(card, 'down2')
+                    );
+                    
+                    if (!canCurrentPlayerPlay) {
+                        this.gameState.ended = true;
+                        this.gameState.won = false;
+                        return true;
+                    }
                 }
             }
         }
@@ -453,7 +474,8 @@ io.on('connection', (socket) => {
                 pileType,
                 playerName: room.players.find(p => p.id === socket.id)?.name,
                 cardsPlayedThisTurn: room.gameState.turnState.cardsPlayedThisTurn,
-                isPoopMove: result.isPoopMove
+                isPoopMove: result.isPoopMove,
+                isDefeated: result.isDefeated
             });
         } else {
             socket.emit('invalidMove', { message: result.message });

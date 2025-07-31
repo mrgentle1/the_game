@@ -513,6 +513,11 @@
             
             addToGameLog(`${data.playerName}님이 ${data.previousCard} → ${data.card}를 ${getPileTypeName(data.pileType)}에 놓았습니다. (${data.cardsPlayedThisTurn}장 플레이)${poopEmoji}${goodMoveEmoji}`, 'success');
             
+            // 패배 조건 체크
+            if (data.isDefeated) {
+                addToGameLog(`${data.playerName}님이 더 이상 카드를 낼 수 없습니다. 게임에서 패배했습니다.`, 'error');
+            }
+            
             // 똥 이펙트 처리 (클라이언트에서만)
             if (data.isPoopMove) {
                 const pileElement = document.getElementById(data.pileType);
